@@ -45,22 +45,13 @@ git push -u origin main
 3. Railway will automatically provision a PostgreSQL database
 4. The `DATABASE_URL` environment variable will be automatically set
 
-### 4. Initialize Database
+### 4. Database Auto-Initialization
 
-After deployment, you need to run the database schema:
+The database will automatically initialize on first startup! The app checks if the `products` table exists, and if not, it will:
+- Create the table structure
+- Seed it with 20 sample products
 
-1. Go to your PostgreSQL service in Railway
-2. Click on "Data" tab
-3. Click "Query"
-4. Copy and paste the contents of `database.sql` and execute it
-
-Alternatively, you can use Railway CLI:
-
-```bash
-railway login
-railway link
-railway run psql $DATABASE_URL < database.sql
-```
+No manual database setup required!
 
 ### 5. Access Your App
 
@@ -99,17 +90,12 @@ DATABASE_URL=postgresql://postgres:your_password@localhost:5432/product_search
 PORT=3000
 ```
 
-5. Initialize database:
-```bash
-psql product_search < database.sql
-```
-
-6. Start the server:
+5. Start the server (database will auto-initialize on first run):
 ```bash
 npm start
 ```
 
-7. Open browser to `http://localhost:3000`
+6. Open browser to `http://localhost:3000`
 
 ## API Endpoints
 

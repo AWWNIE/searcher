@@ -3,6 +3,7 @@ const express = require('express');
 const { Pool } = require('pg');
 const cors = require('cors');
 const path = require('path');
+const initializeDatabase = require('./init-db');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -84,6 +85,20 @@ app.get('/api/products', async (req, res) => {
     }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
-});
+// Initialize database and start server
+async function startServer() {
+    try {
+        // Initialize database if needed
+        await initializeDatabase();
+
+        // Start the server
+        app.listen(PORT, () => {
+            console.log(`Server running on http://localhost:${PORT}`);
+        });
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+}
+
+startServer();
