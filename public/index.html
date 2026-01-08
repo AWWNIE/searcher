@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Product Search</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            color: white;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .search-box {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            margin-bottom: 30px;
+        }
+
+        .search-controls {
+            display: grid;
+            grid-template-columns: 1fr auto auto;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        input[type="text"] {
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        select {
+            padding: 12px 20px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 16px;
+            background: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        button {
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        .results-info {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .product-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .product-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+        }
+
+        .product-name {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .product-category {
+            display: inline-block;
+            padding: 5px 15px;
+            background: #667eea;
+            color: white;
+            border-radius: 20px;
+            font-size: 0.85em;
+            margin-bottom: 10px;
+        }
+
+        .product-description {
+            color: #666;
+            margin-bottom: 15px;
+            line-height: 1.5;
+        }
+
+        .product-price {
+            font-size: 1.5em;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+            margin-top: 30px;
+        }
+
+        .no-results {
+            text-align: center;
+            color: white;
+            font-size: 1.2em;
+            margin-top: 30px;
+            background: rgba(255,255,255,0.1);
+            padding: 30px;
+            border-radius: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .search-controls {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Product Search</h1>
+
+        <div class="search-box">
+            <div class="search-controls">
+                <input
+                    type="text"
+                    id="searchInput"
+                    placeholder="Search by product name or description..."
+                >
+                <select id="categorySelect">
+                    <option value="all">All Categories</option>
+                </select>
+                <button onclick="searchProducts()">Search</button>
+            </div>
+            <div class="results-info" id="resultsInfo"></div>
+        </div>
+
+        <div class="results-grid" id="resultsGrid"></div>
+    </div>
+
+    <script>
+        let allProducts = [];
+
+        // Load categories on page load
+        async function loadCategories() {
+            try {
+                const response = await fetch('/api/categories');
+                const categories = await response.json();
+
+                const select = document.getElementById('categorySelect');
+                categories.forEach(category => {
+                    const option = document.createElement('option');
+                    option.value = category;
+                    option.textContent = category;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading categories:', error);
+            }
+        }
+
+        // Search products
+        async function searchProducts() {
+            const query = document.getElementById('searchInput').value;
+            const category = document.getElementById('categorySelect').value;
+            const resultsGrid = document.getElementById('resultsGrid');
+            const resultsInfo = document.getElementById('resultsInfo');
+
+            // Show loading
+            resultsGrid.innerHTML = '<div class="loading">Searching...</div>';
+            resultsInfo.textContent = '';
+
+            try {
+                const params = new URLSearchParams();
+                if (query) params.append('query', query);
+                if (category !== 'all') params.append('category', category);
+
+                const response = await fetch(`/api/search?${params}`);
+                const products = await response.json();
+
+                displayProducts(products);
+
+                if (products.length > 0) {
+                    resultsInfo.textContent = `Found ${products.length} product${products.length !== 1 ? 's' : ''}`;
+                }
+            } catch (error) {
+                console.error('Error searching products:', error);
+                resultsGrid.innerHTML = '<div class="no-results">Error loading products. Please try again.</div>';
+            }
+        }
+
+        // Display products
+        function displayProducts(products) {
+            const resultsGrid = document.getElementById('resultsGrid');
+
+            if (products.length === 0) {
+                resultsGrid.innerHTML = '<div class="no-results">No products found. Try a different search.</div>';
+                return;
+            }
+
+            resultsGrid.innerHTML = products.map(product => `
+                <div class="product-card">
+                    <div class="product-name">${escapeHtml(product.name)}</div>
+                    <div class="product-category">${escapeHtml(product.category)}</div>
+                    <div class="product-description">${escapeHtml(product.description)}</div>
+                    <div class="product-price">$${parseFloat(product.price).toFixed(2)}</div>
+                </div>
+            `).join('');
+        }
+
+        // Escape HTML to prevent XSS
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Search on Enter key
+        document.getElementById('searchInput').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                searchProducts();
+            }
+        });
+
+        // Load initial data
+        loadCategories();
+        searchProducts(); // Load all products initially
+    </script>
+</body>
+</html>
